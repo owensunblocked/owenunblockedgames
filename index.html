@@ -3,96 +3,96 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Game Site</title>
+<title>Game Portal</title>
 
 <style>
 body{
   margin:0;
-  background:radial-gradient(circle at top,#0f2027,#203a43,#2c5364);
   font-family:Arial,Helvetica,sans-serif;
+  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
   color:white;
   text-align:center;
 }
 
-.header{
-  padding:40px 20px 10px;
-  font-size:48px;
-  font-weight:bold;
-  letter-spacing:2px;
-  text-shadow:0 0 20px cyan;
+.container{
+  padding:40px 20px;
+  max-width:900px;
+  margin:auto;
 }
 
-.sub{
-  opacity:.8;
-  margin-bottom:40px;
+h1{
+  font-size:48px;
+  margin-bottom:10px;
+}
+
+.card{
+  background:rgba(255,255,255,0.08);
+  border-radius:16px;
+  padding:30px;
+  margin-top:30px;
+  box-shadow:0 0 25px rgba(0,0,0,.4);
+}
+
+.gameTitle{
+  font-size:36px;
+  margin-bottom:10px;
+}
+
+.desc{
+  opacity:.85;
+  margin-bottom:25px;
+  line-height:1.6;
 }
 
 .playBtn{
-  font-size:32px;
-  padding:20px 60px;
+  font-size:26px;
+  padding:15px 50px;
   border:none;
-  border-radius:14px;
+  border-radius:12px;
   cursor:pointer;
   color:white;
   background:linear-gradient(45deg,#00c6ff,#0072ff);
-  box-shadow:0 0 25px rgba(0,150,255,.6);
+  box-shadow:0 0 20px rgba(0,150,255,.6);
   transition:.25s;
 }
 
 .playBtn:hover{
   transform:scale(1.08);
-  box-shadow:0 0 40px rgba(0,150,255,1);
 }
 
-#gameContainer{
-  margin-top:40px;
-  display:none;
-  animation:fadeIn .6s ease forwards;
-}
-
-iframe{
-  width:960px;
-  height:600px;
-  max-width:95%;
-  border:none;
-  border-radius:16px;
-  box-shadow:0 0 40px rgba(0,0,0,.6);
-  background:black;
-}
-
-@keyframes fadeIn{
-  from{opacity:0; transform:translateY(20px)}
-  to{opacity:1; transform:translateY(0)}
-}
-
-.footer{
-  margin-top:60px;
-  opacity:.5;
+.note{
+  margin-top:20px;
   font-size:14px;
+  opacity:.6;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">🎮 MY GAME WEBSITE</div>
-<div class="sub">Click play to start</div>
+<div class="container">
+  <h1>🎮 Game Portal</h1>
 
-<button class="playBtn" onclick="startGame()">▶ PLAY GAME</button>
+  <div class="card">
+    <div class="gameTitle">Grow A Garden</div>
+    <div class="desc">
+      🌱 Relaxing farming game<br>
+      🪴 Plant crops and grow your garden<br>
+      💰 Earn coins and expand your land<br><br>
+      Click play to start the game.
+    </div>
 
-<div id="gameContainer">
-  <!-- CHANGE game.html TO YOUR GAME FILE NAME -->
-  <iframe src="game.html"></iframe>
-</div>
+    <button class="playBtn" onclick="playGame()">▶ Play Game</button>
 
-<div class="footer">
-Made with HTML • Hosted on GitHub Pages
+    <div class="note">
+      If the game doesn't start, the game file is missing.
+    </div>
+  </div>
 </div>
 
 <script>
-function startGame(){
-  document.getElementById("gameContainer").style.display="block";
-  window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
+function playGame(){
+  window.location.href = "growagarden.html";
 }
 </script>
 
