@@ -1,10 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>My Game Site</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Game Site</title>
+
+<style>
+body{
+  margin:0;
+  background:radial-gradient(circle at top,#0f2027,#203a43,#2c5364);
+  font-family:Arial,Helvetica,sans-serif;
+  color:white;
+  text-align:center;
+}
+
+.header{
+  padding:40px 20px 10px;
+  font-size:48px;
+  font-weight:bold;
+  letter-spacing:2px;
+  text-shadow:0 0 20px cyan;
+}
+
+.sub{
+  opacity:.8;
+  margin-bottom:40px;
+}
+
+.playBtn{
+  font-size:32px;
+  padding:20px 60px;
+  border:none;
+  border-radius:14px;
+  cursor:pointer;
+  color:white;
+  background:linear-gradient(45deg,#00c6ff,#0072ff);
+  box-shadow:0 0 25px rgba(0,150,255,.6);
+  transition:.25s;
+}
+
+.playBtn:hover{
+  transform:scale(1.08);
+  box-shadow:0 0 40px rgba(0,150,255,1);
+}
+
+#gameContainer{
+  margin-top:40px;
+  display:none;
+  animation:fadeIn .6s ease forwards;
+}
+
+iframe{
+  width:960px;
+  height:600px;
+  max-width:95%;
+  border:none;
+  border-radius:16px;
+  box-shadow:0 0 40px rgba(0,0,0,.6);
+  background:black;
+}
+
+@keyframes fadeIn{
+  from{opacity:0; transform:translateY(20px)}
+  to{opacity:1; transform:translateY(0)}
+}
+
+.footer{
+  margin-top:60px;
+  opacity:.5;
+  font-size:14px;
+}
+</style>
 </head>
-<body style="background:black;color:white;text-align:center;font-family:sans-serif;">
-  <h1>🎮 My Game Website</h1>
-  <p>More games coming soon!</p>
+
+<body>
+
+<div class="header">🎮 MY GAME WEBSITE</div>
+<div class="sub">Click play to start</div>
+
+<button class="playBtn" onclick="startGame()">▶ PLAY GAME</button>
+
+<div id="gameContainer">
+  <!-- CHANGE game.html TO YOUR GAME FILE NAME -->
+  <iframe src="game.html"></iframe>
+</div>
+
+<div class="footer">
+Made with HTML • Hosted on GitHub Pages
+</div>
+
+<script>
+function startGame(){
+  document.getElementById("gameContainer").style.display="block";
+  window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
+}
+</script>
+
 </body>
 </html>
