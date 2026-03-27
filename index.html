@@ -2,98 +2,154 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Game Portal</title>
-
+<title>ZpiceCraft</title>
 <style>
-body{
-  margin:0;
-  font-family:Arial,Helvetica,sans-serif;
-  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-  color:white;
-  text-align:center;
-}
+  body { margin: 0; overflow: hidden; }
+  canvas { display: block; }
 
-.container{
-  padding:40px 20px;
-  max-width:900px;
-  margin:auto;
-}
+  #ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 10px;
+    background: rgba(0,0,0,0.5);
+    color: white;
+    font-family: sans-serif;
+    display: none;
+  }
 
-h1{
-  font-size:48px;
-  margin-bottom:10px;
-}
-
-.card{
-  background:rgba(255,255,255,0.08);
-  border-radius:16px;
-  padding:30px;
-  margin-top:30px;
-  box-shadow:0 0 25px rgba(0,0,0,.4);
-}
-
-.gameTitle{
-  font-size:36px;
-  margin-bottom:10px;
-}
-
-.desc{
-  opacity:.85;
-  margin-bottom:25px;
-  line-height:1.6;
-}
-
-.playBtn{
-  font-size:26px;
-  padding:15px 50px;
-  border:none;
-  border-radius:12px;
-  cursor:pointer;
-  color:white;
-  background:linear-gradient(45deg,#00c6ff,#0072ff);
-  box-shadow:0 0 20px rgba(0,150,255,.6);
-  transition:.25s;
-}
-
-.playBtn:hover{
-  transform:scale(1.08);
-}
-
-.note{
-  margin-top:20px;
-  font-size:14px;
-  opacity:.6;
-}
+  #crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
+    margin-top: -4px;
+    background: white;
+    border-radius: 50%;
+  }
 </style>
 </head>
-
 <body>
 
-<div class="container">
-  <h1>🎮 Game Portal</h1>
+<div id="ui">Inventory: Dirt</div>
+<div id="crosshair"></div>
 
-  <div class="card">
-    <div class="gameTitle">Grow A Garden</div>
-    <div class="desc">
-      🌱 Relaxing farming game<br>
-      🪴 Plant crops and grow your garden<br>
-      💰 Earn coins and expand your land<br><br>
-      Click play to start the game.
-    </div>
-
-    <button class="playBtn" onclick="playGame()">▶ Play Game</button>
-
-    <div class="note">
-      If the game doesn't start, the game file is missing.
-    </div>
-  </div>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/PointerLockControls.js"></script>
 
 <script>
-function playGame(){
-  window.location.href = "growagarden.html";
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87ceeb);
+
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// FIX: attach controls safely
+const controls = new THREE.PointerLockControls(camera, document.body);
+scene.add(controls.getObject());
+
+document.addEventListener("click", () => {
+  controls.lock();
+});
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444444));
+
+// blocks
+let blocks = [];
+
+function addBlock(x, y, z, color = 0x8B5A2B) {
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshLambertMaterial({ color })
+  );
+
+  mesh.position.set(x, y, z);
+  scene.add(mesh);
+  blocks.push(mesh);
 }
+
+// world generation
+for (let x = -10; x < 10; x++) {
+  for (let z = -10; z < 10; z++) {
+    addBlock(x, -1, z);
+  }
+}
+
+// movement
+const keys = {};
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+// inventory toggle
+document.addEventListener("keydown", e => {
+  if (e.key.toLowerCase() === "e") {
+    const ui = document.getElementById("ui");
+    ui.style.display = (ui.style.display === "none") ? "block" : "none";
+  }
+});
+
+// raycasting
+const raycaster = new THREE.Raycaster();
+
+function getHit() {
+  raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+  return raycaster.intersectObjects(blocks)[0];
+}
+
+// block break/place
+document.addEventListener("mousedown", e => {
+  const hit = getHit();
+  if (!hit) return;
+
+  if (e.button === 0) {
+    scene.remove(hit.object);
+    blocks = blocks.filter(b => b !== hit.object);
+  }
+
+  if (e.button === 2) {
+    const pos = hit.object.position.clone().add(hit.face.normal);
+    addBlock(pos.x, pos.y, pos.z);
+  }
+});
+
+document.addEventListener("contextmenu", e => e.preventDefault());
+
+camera.position.set(0, 2, 5);
+
+// loop
+function animate() {
+  requestAnimationFrame(animate);
+
+  const speed = keys["shift"] ? 0.15 : 0.08;
+
+  if (controls.isLocked) {
+    if (keys["w"]) controls.moveForward(speed);
+    if (keys["s"]) controls.moveForward(-speed);
+    if (keys["a"]) controls.moveRight(-speed);
+    if (keys["d"]) controls.moveRight(speed);
+  }
+
+  renderer.render(scene, camera);
+}
+
+animate();
+
+// resize
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 </script>
 
 </body>
