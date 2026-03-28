@@ -1,156 +1,183 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>ZpiceCraft</title>
-<style>
-  body { margin: 0; overflow: hidden; }
-  canvas { display: block; }
-
-  #ui {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    padding: 10px;
-    background: rgba(0,0,0,0.5);
-    color: white;
-    font-family: sans-serif;
-    display: none;
-  }
-
-  #crosshair {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 8px;
-    height: 8px;
-    margin-left: -4px;
-    margin-top: -4px;
-    background: white;
-    border-radius: 50%;
-  }
-</style>
+  <title>ZpiceFab Pro</title>
+  <style>
+    body { font-family: Arial; background:#111; color:white; }
+    input, button { margin:5px; }
+    .model { border:1px solid #444; padding:10px; margin:10px; }
+  </style>
 </head>
 <body>
 
-<div id="ui">Inventory: Dirt</div>
-<div id="crosshair"></div>
+<h1>ZpiceFab Pro</h1>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/PointerLockControls.js"></script>
+<!-- AUTH -->
+<div>
+  <input id="email" placeholder="Email">
+  <input id="password" placeholder="Password" type="password">
+  <button onclick="signup()">Sign Up</button>
+  <button onclick="login()">Login</button>
+  <button onclick="logout()">Logout</button>
+</div>
 
-<script>
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87ceeb);
+<hr>
 
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
+<!-- UPLOAD -->
+<h2>Upload Model</h2>
+<input id="title" placeholder="Model Title (required)">
+<br>
+<input type="file" id="file" accept=".glb,.gltf,.fbx,.obj,.stl,.dae">
+<label>
+  <input type="checkbox" id="isPublic"> Public
+</label>
+<br>
+<button onclick="upload()">Upload</button>
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+<hr>
 
-// FIX: attach controls safely
-const controls = new THREE.PointerLockControls(camera, document.body);
-scene.add(controls.getObject());
+<!-- SEARCH -->
+<h2>Search Models</h2>
+<input id="search" placeholder="Search by title..." oninput="searchModels()">
 
-document.addEventListener("click", () => {
-  controls.lock();
-});
+<hr>
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0x444444));
+<h2>Public Models</h2>
+<div id="publicModels"></div>
 
-// blocks
-let blocks = [];
+<h2>My Models</h2>
+<div id="myModels"></div>
 
-function addBlock(x, y, z, color = 0x8B5A2B) {
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshLambertMaterial({ color })
-  );
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, query, where, getDocs } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-  mesh.position.set(x, y, z);
-  scene.add(mesh);
-  blocks.push(mesh);
+// 🔥 YOUR FIREBASE CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyA6YRP3Ec8DLN_lXvftF6bp4kXXGfm0m3U",
+  authDomain: "umyyuy-70e45.firebaseapp.com",
+  projectId: "umyyuy-70e45",
+  storageBucket: "umyyuy-70e45.firebasestorage.app",
+  messagingSenderId: "485399435278",
+  appId: "1:485399435278:web:e14da3dd8b11059b81845f"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+const storage = getStorage();
+
+let allPublicModels = [];
+
+// AUTH
+window.signup = async () => {
+  await createUserWithEmailAndPassword(auth, email.value, password.value);
+  alert("Signed up!");
+};
+
+window.login = async () => {
+  await signInWithEmailAndPassword(auth, email.value, password.value);
+  loadModels();
+};
+
+window.logout = async () => {
+  await signOut(auth);
+};
+
+// UPLOAD
+window.upload = async () => {
+  const file = document.getElementById("file").files[0];
+  const isPublic = document.getElementById("isPublic").checked;
+  const title = document.getElementById("title").value.trim();
+
+  if (!title) return alert("Title is required!");
+  if (!file) return alert("Pick a file");
+
+  const type = file.name.split('.').pop().toLowerCase();
+
+  const storageRef = ref(storage, "models/" + Date.now() + "_" + file.name);
+  await uploadBytes(storageRef, file);
+
+  const url = await getDownloadURL(storageRef);
+
+  await addDoc(collection(db, "models"), {
+    title,
+    url,
+    user: auth.currentUser.uid,
+    public: isPublic,
+    type
+  });
+
+  alert("Uploaded!");
+  loadModels();
+};
+
+// MODEL CARD
+function createModelCard(data) {
+  let preview = "";
+
+  if (data.type === "glb" || data.type === "gltf") {
+    preview = `<model-viewer src="${data.url}" auto-rotate camera-controls style="width:300px;height:200px;"></model-viewer>`;
+  } else {
+    preview = `<p>Preview not supported (${data.type})</p>`;
+  }
+
+  return `
+    <div class="model">
+      <b>${data.title}</b><br>
+      ${preview}
+      <br>
+      <a href="${data.url}" target="_blank">Download</a>
+    </div>
+  `;
 }
 
-// world generation
-for (let x = -10; x < 10; x++) {
-  for (let z = -10; z < 10; z++) {
-    addBlock(x, -1, z);
-  }
+// LOAD MODELS
+async function loadModels() {
+  publicModels.innerHTML = "";
+  myModels.innerHTML = "";
+  allPublicModels = [];
+
+  const q1 = query(collection(db, "models"), where("public", "==", true));
+  const publicSnap = await getDocs(q1);
+
+  publicSnap.forEach(doc => {
+    const data = doc.data();
+    allPublicModels.push(data);
+    publicModels.innerHTML += createModelCard(data);
+  });
+
+  if (!auth.currentUser) return;
+
+  const q2 = query(collection(db, "models"), where("user", "==", auth.currentUser.uid));
+  const mySnap = await getDocs(q2);
+
+  mySnap.forEach(doc => {
+    myModels.innerHTML += createModelCard(doc.data());
+  });
 }
 
-// movement
-const keys = {};
-document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
-document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+// 🔍 SEARCH
+window.searchModels = () => {
+  const term = document.getElementById("search").value.toLowerCase();
 
-// inventory toggle
-document.addEventListener("keydown", e => {
-  if (e.key.toLowerCase() === "e") {
-    const ui = document.getElementById("ui");
-    ui.style.display = (ui.style.display === "none") ? "block" : "none";
-  }
-});
+  publicModels.innerHTML = "";
 
-// raycasting
-const raycaster = new THREE.Raycaster();
+  allPublicModels
+    .filter(m => m.title.toLowerCase().includes(term))
+    .forEach(m => {
+      publicModels.innerHTML += createModelCard(m);
+    });
+};
 
-function getHit() {
-  raycaster.setFromCamera({ x: 0, y: 0 }, camera);
-  return raycaster.intersectObjects(blocks)[0];
-}
-
-// block break/place
-document.addEventListener("mousedown", e => {
-  const hit = getHit();
-  if (!hit) return;
-
-  if (e.button === 0) {
-    scene.remove(hit.object);
-    blocks = blocks.filter(b => b !== hit.object);
-  }
-
-  if (e.button === 2) {
-    const pos = hit.object.position.clone().add(hit.face.normal);
-    addBlock(pos.x, pos.y, pos.z);
-  }
-});
-
-document.addEventListener("contextmenu", e => e.preventDefault());
-
-camera.position.set(0, 2, 5);
-
-// loop
-function animate() {
-  requestAnimationFrame(animate);
-
-  const speed = keys["shift"] ? 0.15 : 0.08;
-
-  if (controls.isLocked) {
-    if (keys["w"]) controls.moveForward(speed);
-    if (keys["s"]) controls.moveForward(-speed);
-    if (keys["a"]) controls.moveRight(-speed);
-    if (keys["d"]) controls.moveRight(speed);
-  }
-
-  renderer.render(scene, camera);
-}
-
-animate();
-
-// resize
-window.addEventListener("resize", () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
 </script>
+
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
 </body>
 </html>
