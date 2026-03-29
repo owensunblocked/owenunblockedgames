@@ -1,183 +1,166 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>ZpiceFab Pro</title>
-  <style>
-    body { font-family: Arial; background:#111; color:white; }
-    input, button { margin:5px; }
-    .model { border:1px solid #444; padding:10px; margin:10px; }
-  </style>
+<meta charset="UTF-8">
+<title>Zpice FPS</title>
+
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial;
+    background: linear-gradient(135deg, #000000, #2a004f, #5a00a3);
+}
+
+/* Menu UI */
+.menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.8);
+    padding: 30px;
+    border-radius: 15px;
+    text-align: center;
+    color: white;
+    box-shadow: 0 0 20px purple;
+}
+
+button {
+    padding: 10px 20px;
+    margin: 10px;
+    background: purple;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#gameMenu { display:none; }
+</style>
 </head>
+
 <body>
 
-<h1>ZpiceFab Pro</h1>
-
-<!-- AUTH -->
-<div>
-  <input id="email" placeholder="Email">
-  <input id="password" placeholder="Password" type="password">
-  <button onclick="signup()">Sign Up</button>
-  <button onclick="login()">Login</button>
-  <button onclick="logout()">Logout</button>
+<!-- LOGIN -->
+<div id="loginMenu" class="menu">
+    <h1>Zpice</h1>
+    <input id="email" placeholder="Email"><br>
+    <input id="password" type="password" placeholder="Password"><br>
+    <button onclick="login()">Login</button>
 </div>
 
-<hr>
+<!-- PLAY MENU -->
+<div id="gameMenu" class="menu">
+    <h1>Menu</h1>
+    <button onclick="startGame()">PLAY</button>
+</div>
 
-<!-- UPLOAD -->
-<h2>Upload Model</h2>
-<input id="title" placeholder="Model Title (required)">
-<br>
-<input type="file" id="file" accept=".glb,.gltf,.fbx,.obj,.stl,.dae">
-<label>
-  <input type="checkbox" id="isPublic"> Public
-</label>
-<br>
-<button onclick="upload()">Upload</button>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/controls/PointerLockControls.js"></script>
 
-<hr>
-
-<!-- SEARCH -->
-<h2>Search Models</h2>
-<input id="search" placeholder="Search by title..." oninput="searchModels()">
-
-<hr>
-
-<h2>Public Models</h2>
-<div id="publicModels"></div>
-
-<h2>My Models</h2>
-<div id="myModels"></div>
-
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, where, getDocs } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
-
-// 🔥 YOUR FIREBASE CONFIG
-const firebaseConfig = {
-  apiKey: "AIzaSyA6YRP3Ec8DLN_lXvftF6bp4kXXGfm0m3U",
-  authDomain: "umyyuy-70e45.firebaseapp.com",
-  projectId: "umyyuy-70e45",
-  storageBucket: "umyyuy-70e45.firebasestorage.app",
-  messagingSenderId: "485399435278",
-  appId: "1:485399435278:web:e14da3dd8b11059b81845f"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth();
-const db = getFirestore();
-const storage = getStorage();
-
-let allPublicModels = [];
-
-// AUTH
-window.signup = async () => {
-  await createUserWithEmailAndPassword(auth, email.value, password.value);
-  alert("Signed up!");
-};
-
-window.login = async () => {
-  await signInWithEmailAndPassword(auth, email.value, password.value);
-  loadModels();
-};
-
-window.logout = async () => {
-  await signOut(auth);
-};
-
-// UPLOAD
-window.upload = async () => {
-  const file = document.getElementById("file").files[0];
-  const isPublic = document.getElementById("isPublic").checked;
-  const title = document.getElementById("title").value.trim();
-
-  if (!title) return alert("Title is required!");
-  if (!file) return alert("Pick a file");
-
-  const type = file.name.split('.').pop().toLowerCase();
-
-  const storageRef = ref(storage, "models/" + Date.now() + "_" + file.name);
-  await uploadBytes(storageRef, file);
-
-  const url = await getDownloadURL(storageRef);
-
-  await addDoc(collection(db, "models"), {
-    title,
-    url,
-    user: auth.currentUser.uid,
-    public: isPublic,
-    type
-  });
-
-  alert("Uploaded!");
-  loadModels();
-};
-
-// MODEL CARD
-function createModelCard(data) {
-  let preview = "";
-
-  if (data.type === "glb" || data.type === "gltf") {
-    preview = `<model-viewer src="${data.url}" auto-rotate camera-controls style="width:300px;height:200px;"></model-viewer>`;
-  } else {
-    preview = `<p>Preview not supported (${data.type})</p>`;
-  }
-
-  return `
-    <div class="model">
-      <b>${data.title}</b><br>
-      ${preview}
-      <br>
-      <a href="${data.url}" target="_blank">Download</a>
-    </div>
-  `;
+<script>
+// fake login
+function login(){
+    document.getElementById("loginMenu").style.display="none";
+    document.getElementById("gameMenu").style.display="block";
 }
 
-// LOAD MODELS
-async function loadModels() {
-  publicModels.innerHTML = "";
-  myModels.innerHTML = "";
-  allPublicModels = [];
-
-  const q1 = query(collection(db, "models"), where("public", "==", true));
-  const publicSnap = await getDocs(q1);
-
-  publicSnap.forEach(doc => {
-    const data = doc.data();
-    allPublicModels.push(data);
-    publicModels.innerHTML += createModelCard(data);
-  });
-
-  if (!auth.currentUser) return;
-
-  const q2 = query(collection(db, "models"), where("user", "==", auth.currentUser.uid));
-  const mySnap = await getDocs(q2);
-
-  mySnap.forEach(doc => {
-    myModels.innerHTML += createModelCard(doc.data());
-  });
+// START GAME
+function startGame(){
+    document.getElementById("gameMenu").style.display="none";
+    initGame();
 }
 
-// 🔍 SEARCH
-window.searchModels = () => {
-  const term = document.getElementById("search").value.toLowerCase();
+let camera, scene, renderer, controls;
+let velocity = new THREE.Vector3();
+let direction = new THREE.Vector3();
+let move = { forward:false, back:false, left:false, right:false };
 
-  publicModels.innerHTML = "";
+function initGame(){
 
-  allPublicModels
-    .filter(m => m.title.toLowerCase().includes(term))
-    .forEach(m => {
-      publicModels.innerHTML += createModelCard(m);
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x220033);
+
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 1, 1000);
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    controls = new THREE.PointerLockControls(camera, document.body);
+
+    document.body.addEventListener('click', () => {
+        controls.lock();
     });
-};
 
+    scene.add(controls.getObject());
+
+    // floor
+    const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(100,100),
+        new THREE.MeshBasicMaterial({ color: 0x5500aa, wireframe:true })
+    );
+    floor.rotation.x = -Math.PI/2;
+    scene.add(floor);
+
+    // cubes (minecraft style)
+    for(let i=0;i<50;i++){
+        const cube = new THREE.Mesh(
+            new THREE.BoxGeometry(),
+            new THREE.MeshBasicMaterial({ color: Math.random()*0xffffff })
+        );
+        cube.position.set(
+            Math.random()*50-25,
+            0.5,
+            Math.random()*50-25
+        );
+        scene.add(cube);
+    }
+
+    // controls
+    document.addEventListener('keydown', e=>{
+        if(e.code==="KeyW") move.forward=true;
+        if(e.code==="KeyS") move.back=true;
+        if(e.code==="KeyA") move.left=true;
+        if(e.code==="KeyD") move.right=true;
+    });
+
+    document.addEventListener('keyup', e=>{
+        if(e.code==="KeyW") move.forward=false;
+        if(e.code==="KeyS") move.back=false;
+        if(e.code==="KeyA") move.left=false;
+        if(e.code==="KeyD") move.right=false;
+    });
+
+    animate();
+}
+
+function animate(){
+    requestAnimationFrame(animate);
+
+    if(controls.isLocked){
+
+        direction.z = Number(move.forward) - Number(move.back);
+        direction.x = Number(move.right) - Number(move.left);
+        direction.normalize();
+
+        if(move.forward || move.back)
+            velocity.z -= direction.z * 0.1;
+
+        if(move.left || move.right)
+            velocity.x -= direction.x * 0.1;
+
+        controls.moveRight(-velocity.x);
+        controls.moveForward(-velocity.z);
+
+        velocity.x *= 0.9;
+        velocity.z *= 0.9;
+    }
+
+    renderer.render(scene, camera);
+}
 </script>
-
-<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 
 </body>
 </html>
